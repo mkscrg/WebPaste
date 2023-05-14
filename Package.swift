@@ -3,7 +3,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "paste-for-gmail",
+    name: "web-paste",
     platforms: [
         .macOS(.v13),
     ],
@@ -12,10 +12,10 @@ let package = Package(
     ],
     targets: [
         .executableTarget(
-            name: "PasteForGmail",
+            name: "WebPaste",
             dependencies: ["SwiftSoup"]),
         .testTarget(
-            name: "PasteForGmailTests",
-            dependencies: ["PasteForGmail"]),
+            name: "WebPasteTests",
+            dependencies: ["WebPaste"]),
     ]
 )

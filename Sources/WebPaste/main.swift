@@ -2,7 +2,7 @@ import Cocoa
 import SwiftSoup
 
 @main
-struct PasteForGmail {
+struct WebPaste {
     static func main() {
         if !checkAccessibility() {
             print("Accessibility permission not granted")
