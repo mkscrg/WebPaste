@@ -10,6 +10,12 @@ TODO
   - how GMail-specific is this? any sites where it's super wrong?
 - [ ] get images working
 
+## Usage
+
+Copy text from a website, then activate WebPaste.
+
+https://github.com/mkscrg/WebPaste/assets/471342/64d6b330-44d4-4f0b-8ce5-73f33f5687ab
+
 ## Install
 
 Clone then build `WebPaste`:
@@ -36,14 +42,6 @@ Create a new script command in your script directory:
 
 # path to your WebPaste build
 ~/dev/web-paste/.build/release/WebPaste
-```
-
-## Usage
-
-Copy text from a website, then activate WebPaste.
-
-```
-(gif)
 ```
 
 ## DOM in the Pasteboard
