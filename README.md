@@ -3,13 +3,6 @@
 Paste between websites with better formatting. Use with Raycast, Alfred, or your preferred macOS
 script runner.
 
-TODO
-- [ ] fix line breaks between paragraphs, sometimes missing
-- [ ] gif in README below
-- [ ] test with more sites, inbound and outbound
-  - how GMail-specific is this? any sites where it's super wrong?
-- [ ] get images working
-
 ## Usage
 
 Copy text from a website, then activate WebPaste.
