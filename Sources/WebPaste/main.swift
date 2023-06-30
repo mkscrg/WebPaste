@@ -62,7 +62,7 @@ struct WebPaste {
         do {
             let doc = try SwiftSoup.parseBodyFragment(html)
             let body = doc.body()!
-            try cleanHtmlTree(body)
+            try cleanBody(body)
             doc.outputSettings()
                 .prettyPrint(pretty: false)
                 .escapeMode(Entities.EscapeMode.base)
@@ -73,13 +73,90 @@ struct WebPaste {
         }
     }
 
-    // TODO should use traverse() to avoid the rec call
-    static func cleanHtmlTree(_ elt: Element) throws {
-        for child in elt.children() {
-            try cleanHtmlTree(child)
+    static func cleanBody(_ body: Element) throws {
+        for eltOp in elementOps {
+            try body.traverse(eltOp)
         }
-        try cleanHtmlElement(elt)
     }
+
+    static let elementOps = [
+        // drop <meta>
+        ElementOp { (elt: Element, _: Int) throws in
+            if elt.tagName() == "meta" {
+                try elt.remove()
+            }
+        },
+
+        // convert "Apple-converted-space" to simple spaces
+        ElementOp { (elt: Element, _: Int) throws in
+            if (try? elt.className()) ?? "" == "Apple-converted-space" {
+                try elt.replaceWith(TextNode(" ", nil))
+            }
+        },
+
+        // drop <b> w/ google docs guid
+        ElementOp { (elt: Element, _: Int) throws in
+            if elt.tagName() == "b" && elt.id().starts(with: "docs-internal-guid-") {
+                try replaceWithChildren(elt)
+            }
+        },
+
+        // convert <p> to <div>
+        ElementOp { (elt: Element, _: Int) throws in
+            if elt.tagName() == "p" {
+                try elt.tagName("div")
+            }
+        },
+
+        // drop lone-sibling <div>
+        ElementOp { (elt: Element, _: Int) throws in
+            if elt.tagName() == "div" && elt.parent()!.childNodeSize() == 1 {
+                try replaceWithChildren(elt)
+            }
+        },
+
+        // resolve tag-style contradictions
+        ElementOp { (elt: Element, _: Int) throws in
+            if try elt.tagName() == "em" && elt.attr("style").contains(styleFSNormal)
+                || elt.tagName() == "i" && elt.attr("style").contains(styleFSNormal)
+                || elt.tagName() == "b" && elt.attr("style").contains(styleFWNormal)
+                || elt.tagName() == "strong" && elt.attr("style").contains(styleFWNormal) {
+                try elt.tagName("span")
+            }
+        },
+
+        // test `style`, inject <i>/<b>/<u>/<strike> tags accordingly
+        ElementOp { (elt: Element, _: Int) throws in
+            if elt.tagName() == "span" {
+                if try elt.attr("style").contains(styleFSItalic) {
+                    try insertParentOfChildren(elt, tagName: "i")
+                }
+                if try elt.attr("style").contains(styleFWBold) {
+                    try insertParentOfChildren(elt, tagName: "b")
+                }
+                if try elt.attr("style").contains(styleTDUnderline) {
+                    try insertParentOfChildren(elt, tagName: "u")
+                }
+                if try elt.attr("style").contains(styleTDLineThrough) {
+                    try insertParentOfChildren(elt, tagName: "strike")
+                }
+            }
+        },
+
+        // drop all attrs except "href" on <a>
+        ElementOp { (elt: Element, _: Int) throws in
+            var href: String?
+            if elt.tagName() == "a" {
+                href = try elt.attr("href")
+            }
+            for attr in elt.getAttributes() ?? Attributes() {
+                try elt.removeAttr(attr.getKey())
+            }
+            if href != nil {
+                try elt.attr("href", href!)
+            }
+        }
+    ]
 
     static let styleFSNormal = #/(^|;) *font-style: *normal *(;|$)/#
     static let styleFWNormal = #/(^|;) *font-weight: *(normal|400) *(;|$)/#
@@ -88,76 +165,6 @@ struct WebPaste {
     static let styleFWBold = #/(^|;) *font-weight: *(bold|700) *(;|$)/#
     static let styleTDUnderline = #/(^|;) *text-decoration: *([a-zA-Z0-9-]+ +)*underline( +[a-zA-Z0-9-]+)* *(;|$)/#
     static let styleTDLineThrough = #/(^|;) *text-decoration: *([a-zA-Z0-9-]+ +)*line-through( +[a-zA-Z0-9-]+)* *(;|$)/#
-
-    static func cleanHtmlElement(_ elt: Element) throws {
-        // most of these return, but some don't. order sensitive!
-
-        // drop <meta>
-        if elt.tagName() == "meta" {
-            try elt.remove()
-            return
-        }
-        // convert "Apple-converted-space" to simple spaces
-        if (try? elt.className()) ?? "" == "Apple-converted-space" {
-            try elt.replaceWith(TextNode(" ", nil))
-            return
-        }
-        // drop <b> w/ google docs guid
-        if elt.tagName() == "b" && elt.id().starts(with: "docs-internal-guid-") {
-            try replaceWithChildren(elt)
-            return
-        }
-
-        // convert <p> to <div>
-        if elt.tagName() == "p" {
-            try elt.tagName("div")
-            // no early return!
-        }
-
-        // drop lone-sibling <div>
-        if elt.tagName() == "div" && elt.parent()!.childNodeSize() == 1 {
-            try replaceWithChildren(elt)
-            return
-        }
-
-        // resolve tag-style contradictions
-        if try elt.tagName() == "em" && elt.attr("style").contains(styleFSNormal)
-            || elt.tagName() == "i" && elt.attr("style").contains(styleFSNormal)
-            || elt.tagName() == "b" && elt.attr("style").contains(styleFWNormal)
-            || elt.tagName() == "strong" && elt.attr("style").contains(styleFWNormal) {
-            try elt.tagName("span")
-            // no early return!
-        }
-
-        // test `style`, inject <i>/<b>/<u>/<strike> tags accordingly
-        if elt.tagName() == "span" {
-            if try elt.attr("style").contains(styleFSItalic) {
-                try parentOfChildren(elt, tagName: "i")
-            }
-            if try elt.attr("style").contains(styleFWBold) {
-                try parentOfChildren(elt, tagName: "b")
-            }
-            if try elt.attr("style").contains(styleTDUnderline) {
-                try parentOfChildren(elt, tagName: "u")
-            }
-            if try elt.attr("style").contains(styleTDLineThrough) {
-                try parentOfChildren(elt, tagName: "strike")
-            }
-            // no early return!
-        }
-
-        // drop all attrs except "href" on <a>
-        var href: String?
-        if elt.tagName() == "a" {
-            href = try elt.attr("href")
-        }
-        for attr in elt.getAttributes() ?? Attributes() {
-            try elt.removeAttr(attr.getKey())
-        }
-        if href != nil {
-            try elt.attr("href", href!)
-        }
-    }
 
     static func replaceWithChildren(_ elt: Element) throws {
         let parent = elt.parent()!
@@ -170,7 +177,7 @@ struct WebPaste {
         }
     }
 
-    static func parentOfChildren(_ elt: Element, tagName: String) throws {
+    static func insertParentOfChildren(_ elt: Element, tagName: String) throws {
         let newChild = try elt.prependElement(tagName)
         for (idx, child) in elt.getChildNodes().enumerated() {
             if idx == 0 {
@@ -203,5 +210,19 @@ struct WebPaste {
 
         let cmdUp = CGEvent(keyboardEventSource: src, virtualKey: cmdKey, keyDown: false)
         cmdUp!.post(tap: .cghidEventTap)
+    }
+}
+
+struct ElementOp: NodeVisitor {
+    var run: (Element, Int) throws -> Void
+
+    func head(_ node: Node, _ depth: Int) throws {
+        // do nothing, always run leaf->root
+    }
+
+    func tail(_ node: Node, _ depth: Int) throws {
+        if let elt = node as? Element {
+            try run(elt, depth)
+        }
     }
 }

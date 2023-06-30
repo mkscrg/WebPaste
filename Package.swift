@@ -8,7 +8,7 @@ let package = Package(
         .macOS(.v13),
     ],
     dependencies: [
-        .package(url: "https://github.com/scinfu/SwiftSoup.git", from: "2.6.0"),
+        .package(url: "https://github.com/scinfu/SwiftSoup.git", from: "2.6.1"),
     ],
     targets: [
         .executableTarget(
