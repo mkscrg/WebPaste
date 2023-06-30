@@ -40,17 +40,17 @@ Create a new script command in your script directory:
 ## DOM in the Pasteboard
 
 When you copy from a website, your browser maps your selection to DOM elements, then converts those
-to HTML which it writes to the system pasteboard. When you paste into a website, the browser reads
-that HTML and converts it back to DOM elements[^0]. The site you're pasting into then does ...
-whatever it feels like with those elements.
+elements to HTML which it writes to the pasteboard. When you paste into a website, the browser reads
+that HTML and converts it back to DOM elements[^0]. Then the site you've pasted into does ...
+whatever it feels like.
 
-Extracted-from-a-live-website DOM elements are not a great format for copying and pasting. The DOM
-mixes content we care about—the actual text, as well as basic structures like lists, links, and
-headings—with a lot of presentational noise and implementation details that we'd rather omit. It's
-great (maybe) for building websites, but it fails quickly for our use case. The copied-and-pasted
-output includes all that noise that we don't want.
+This process is not setup for success. The DOM is a messy intermediate step in the process of making
+websites, full of site-specific implementation details and accidental complexity. It mixes content
+we care about—actual text, as well as basic structures like lists, links, and headings—with a lot of
+noise we'd rather omit. That's why our naively copied-and-pasted text looks like a zombie cutout of
+the site we copied from.
 
-Try pasting from Google Docs into GMail, and you'll discover:
+Worse, try copying from a rich text editor like Google Docs into GMail:
 - the fonts and font sizes are off
 - everything is bold, but sometimes not the _same_ bold as if you'd clicked the `B` icon
 - indendation levels are arbitrary, depending on some hidden state in your GDoc
@@ -63,18 +63,18 @@ HTML winds up in the pasteboard, and then sanitizes pasted input before displayi
 ## Cleaning up
 
 The standard solution is "paste without formatting". Browsers write plaintext to the pasteboard
-alongside HTML, and apps can choose to access either. Users can force a plaintext paste in most
-apps with <kbd>⌘</kbd><kbd>⇧</kbd><kbd>⌥</kbd><kbd>V</kbd>. But plaintext goes too far! We avoid the
-mismatched fonts and hidden DOM structure, but we also lose the links, lists, headings, emphasis,
-etc.
+alongside HTML, and apps can choose to access either when the user initiates a paste. Users can
+force a plaintext paste in most apps with <kbd>⌘</kbd><kbd>⇧</kbd><kbd>⌥</kbd><kbd>V</kbd>.
 
-We can do better by cleaning up the HTML in the pasteboard. WebPaste reads and parses the HTML,
+But plaintext goes too far! We avoid the mismatched fonts and hidden structure, but we also lose the
+links, lists, headings, emphasis, etc.
+
+We can do better by cleaning up the HTML in the pasteboard. WebPaste reads and parses that HTML,
 removes most of the attributes and extra structure, then writes it back to the pasteboard before
 initiating a regular <kbd>⌘</kbd><kbd>V</kbd> paste.
 
-This isn't a perfect solution! There's no rigorous way to separate the structure and attributes that
-we do care about from those that we don't. This is just a set of basic rules that err on the side of
-removing noise and implementation details. WebPaste is more likely to over-clean your text than
-under-clean it. YMMV.
+This isn't a perfect solution. Picking out the formatting intent in a sea of markup is a heuristic
+process, at best. WebPaste is more likely to over-clean your text than under-clean it. This is a
+lark. YMMV. Pull requests welcome.
 
 [^0]: An oversimplification. The truth is in [the docs](https://developer.apple.com/documentation/appkit/nspasteboard).
