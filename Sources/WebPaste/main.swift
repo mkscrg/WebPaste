@@ -101,6 +101,16 @@ struct WebPaste {
             }
         },
 
+        // insert <br> between consecutive <p>
+        ElementOp { (elt: Element, _: Int) throws in
+            let nextSib = try elt.nextElementSibling()
+            if let nextSib {
+                if elt.tagName() == "p" && nextSib.tagName() == "p" {
+                    try elt.after("<br>")
+                }
+            }
+        },
+
         // convert <p> to <div>
         ElementOp { (elt: Element, _: Int) throws in
             if elt.tagName() == "p" {

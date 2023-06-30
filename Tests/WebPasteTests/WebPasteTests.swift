@@ -24,8 +24,15 @@ final class WebPasteTests: XCTestCase {
     }
 
     func testCleanHtmlConvertPDiv() throws {
-        let input = "<p>hello</p><p>world</p>"
+        let input = "<p>hello</p><div>world</div>"
         let expected = "<div>hello</div><div>world</div>"
+        let output = WebPaste.cleanHtml(input)
+        XCTAssertEqual(output, expected, "unexpected HTML from cleanHtml()")
+    }
+
+    func testCleanHtmlConvertConsecPDivBr() throws {
+        let input = "<p>hello</p><p>world</p>"
+        let expected = "<div>hello</div><br><div>world</div>"
         let output = WebPaste.cleanHtml(input)
         XCTAssertEqual(output, expected, "unexpected HTML from cleanHtml()")
     }
